@@ -1,6 +1,4 @@
-# %%
 import warnings
-
 import matplotlib as mpl
 import numpy as np
 import pandas as pd  # Basic library for all of our dataset operations
@@ -15,61 +13,24 @@ from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.stattools import adfuller
 
 
-# We will use deprecated models of statmodels which throw a lot of warnings to use more modern ones
-warnings.filterwarnings("ignore")
 
 
-# Extra settings
-seed = 42
-tf.random.set_seed(seed)
-np.random.seed(seed)
-plt.style.use('bmh')
-mpl.rcParams['axes.labelsize'] = 14
-mpl.rcParams['xtick.labelsize'] = 12
-mpl.rcParams['ytick.labelsize'] = 12
-mpl.rcParams['text.color'] = 'k'
-print(tf.__version__)
 
-# %% [markdown]
-# # 📚 Time series analysis and transforms
 
-# %% [markdown]
-# This notebook contains a set of operations we can perform in our time series in order to get some insights or transform the series to make forecasting easier.
-# 
-# Which ones will we touching in this notebook?
-# 
-# * Time series decomposition
-#   * Level
-#   * Trend
-#   * Seasonality
-#   * Noise
-# 
-# * Stationarity
-#   * AC and PAC plots
-#   * Rolling mean and std
-#   * Dickey-Fuller test
-# 
-# * Making our time series stationary
-#   * Difference transform
-#   * Log scale
-#   * Smoothing
-#   * Moving average
-
-# %% [markdown]
 # ## Load the dataset and quick preview
 
-# %%
+ 
 air_pollution = pd.read_csv('datasets/air_pollution.csv', parse_dates=['date'])
 air_pollution.set_index('date', inplace=True)
 air_pollution.head()
 
-# %%
+
 air_pollution.describe()
 
-# %% [markdown]
+
 # Lets check each feature values
 
-# %%
+
 values = air_pollution.values
 groups = [0, 1, 2, 3, 4, 5, 6, 7]
 i = 1
@@ -83,17 +44,17 @@ for group in groups:
 
 plt.show()
 
-# %%
+
 plt.figure(num=None, figsize=(30, 10), dpi=80, facecolor='w', edgecolor='k')
 plt.title('Air pollution', fontsize=30)
 
 plt.plot(air_pollution.pollution_today)
 plt.savefig("results/pollution.png")
 
-# %% [markdown]
+
 # ## Decomposing our time series
 
-# %% [markdown]
+
 # One of the most common analysis for time series is decomposing it into multiple parts. The parts we can divide a time series into are: level, trend, seasonality and noise, all series contain level and noise but seasonality and trend are not always present (there will be more analysis for this two parts).
 # 
 # This 4 parts can combine either additively or multiplicatively into the time series.
@@ -116,23 +77,23 @@ plt.savefig("results/pollution.png")
 # 
 # Statsmodel python library provides a function [seasonal_compose()](http://www.statsmodels.org/dev/generated/statsmodels.tsa.seasonal.seasonal_decompose.html) to automatically decompose a time series, you still need to specify wether the model is additive or multiplicative. We will use multiplicative as our quick peak at the pm2.5 time series shows no linear trend.
 
-# %%
+
 rcParams['figure.figsize'] = 18, 8
 plt.figure(num=None, figsize=(50, 20), dpi=80, facecolor='w', edgecolor='k')
 series = air_pollution.pollution_today[:365]
 result = seasonal_decompose(series, model='multiplicative')
 result.plot()
 
-# %% [markdown]
+
 # ### Level
 
-# %% [markdown]
+
 # Level simply means the current value of the series once we remove trend, seasonality and the random noise. This are the true values that come from the series itself and we will try to predict with our models. Most of the models will benefit the more our time series is composed by the level and not trends/seasonality/noise. We also present models capable of handling seasonality and trend (non stationary series)
 
-# %% [markdown]
+
 # ### Trend
 
-# %% [markdown]
+
 # A trend is observed when there is an increasing or decreasing slope observed in the time series. A trend is a smooth, general, long-term, average tendency. It is not always necessary that the increase or decrease is in the same direction throughout the given period of time.
 # 
 # Trend can be removed from your time series data (and data in the future) as a data preparation and cleaning exercise. This is common when using statistical methods for time series forecasting, but does not always improve results when using machine learning models. We will see different methods for this in the making your series stationary section
@@ -147,7 +108,7 @@ result.plot()
 # 
 # 
 
-# %%
+
 fig = plt.figure(figsize=(15, 7))
 layout = (3, 2)
 pm_ax = plt.subplot2grid(layout, (0, 0), colspan=2)
@@ -174,12 +135,12 @@ fit_ax.set_title("Trend fitted by linear regression")
 
 plt.tight_layout()
 
-# %% [markdown]
+
 # We can see our series does not have a strong trend, results from both the automatic decomposition and the moving average look more like a seasonality efect+random noise than a trend. This sort of confirmed with our linear regression, which cant find our series properly and gives us a poor trend.
 # 
 # We could also try to split our series into smaller ones to try identify subtrends with the mentioned methods but we will not be doing so in this section.
 
-# %% [markdown]
+
 # ### Seasonality
 # Seasonality is observed when there is a distinct repeated pattern observed between regular intervals due to seasonal factors. It could be because of the month of the year, the day of the month, weekdays or even time of the day. For example the amount of sunscream protector (always low in winter and high in summer).
 # 
@@ -187,30 +148,30 @@ plt.tight_layout()
 # 
 # Lets go with the first year of data only now:
 
-# %%
+
 rcParams['figure.figsize'] = 18, 8
 plt.figure(num=None, figsize=(50, 20), dpi=80, facecolor='w', edgecolor='k')
 series = air_pollution.pollution_today[:365]
 result = seasonal_decompose(series, model='multiplicative')
 result.plot()
 
-# %% [markdown]
+
 # Here can see a clear weekly trend, 4 spikes every month (weerkly). Lets check how the last year of data looks
 
-# %%
+
 rcParams['figure.figsize'] = 18, 8
 plt.figure(num=None, figsize=(50, 20), dpi=80, facecolor='w', edgecolor='k')
 series = air_pollution.pollution_today[-365:]
 result = seasonal_decompose(series, model='multiplicative')
 result.plot()
 
-# %% [markdown]
+
 # We see another weekly seasonality(4 spikes between every month) but a bit different to the original one, this is something we should always expect from real datasets as their seasonalities will never be perfect but a combination of multiples.
 
-# %% [markdown]
+
 # ##INTERPRETATION
 
-# %%
+
 # Looking for weekly seasonality
 resample = air_pollution.resample('W')
 weekly_mean = resample.mean()
@@ -218,13 +179,13 @@ weekly_mean.pollution_today.plot(label='Weekly mean')
 plt.title("Resampled series to weekly mean values")
 plt.legend()
 
-# %% [markdown]
+
 # **Manual methods to find seasonalities**
 
-# %% [markdown]
+
 # We can also try to generate a model to find the seasonalities for us. One of the most common to use is a simple polynomial model.
 
-# %%
+
 # Fix xticks to show dates
 # fit polynomial: x^2*b1 + x*b2 + ... + bn
 series = air_pollution.pollution_today.values
@@ -246,13 +207,13 @@ plt.legend()
 plt.title("Polynomial fit to find seasonality")
 plt.show()
 
-# %% [markdown]
+
 # We can see how the model to find a seasonality fits poorly to our data. Is going to be a complicate time series to model :P
 
-# %% [markdown]
+
 # ### Noise
 
-# %% [markdown]
+
 # Our time series will also have a noise component to them, most likely [white noise](https://en.wikipedia.org/wiki/White_noise). We say white noise is present if the measurement are independent and identically distributed with a mean of zero. This will mean all our measurements have same variance and no correlation with the rest of values in the series.
 # 
 # If our time series has white noise this will mean we can't predict that component of the series (as is random) and we shoul aim to produce a model with errors close to this white noise.
@@ -263,7 +224,7 @@ plt.show()
 # * Standard deviation distribution, is it a Gaussian distribution?
 # * Does the mean or level change over time?
 
-# %%
+
 fig = plt.figure(figsize=(12, 7))
 layout = (2, 2)
 hist_ax = plt.subplot2grid(layout, (0, 0))
@@ -286,14 +247,14 @@ mm.plot(ax=mean_ax)
 mean_ax.set_title("Mean over time")
 
 
-# %% [markdown]
+
 # We can see our series do not follow a Gaussian distribution from the histogram and neither the standard deviation, thought the std does has the mean more centered which shows a small part of white noise that is not possible to split from the original series (this will happen most of the times, specially is real life datasets)).
 # 
 # We also have a small correlation with close measurements in time but not present with distant measurements (this could also indicate low seasonality). The mean over time also shows something similar with a constant value and high peaks in the same moments for the 4 years (smaller in 2012)
 # 
 # We could say our series does contain a small part of white noise but it is really small and hard to remove
 
-# %% [markdown]
+
 # ## Stationarity
 # Stationarity is an important characteristic of time series. A time series is stationarity if it has constant mean and variance over time. Most models work only with stationary data as this makes it easier to model. Not all time series are stationary but we can transform them into stationary series in different ways.
 # 
@@ -304,31 +265,31 @@ mean_ax.set_title("Mean over time")
 # 
 # 
 
-# %% [markdown]
+
 # ### Autocorrelation and Partial autocorrelation plots
 
-# %% [markdown]
+
 # Autocorelation plots show how correlated are values at time t with the next values in time t+1,t+2,..t+n. If the data would be non-stationary the autocorrelation values will be highly correlated with distant points in time showing possible seasonalities or trends.
 # 
 # Stationary series autocorrelation values will quickly decrease over time t. This shows us that no information is carried over time and then the series should be constant over time.
 # 
 # 
 
-# %%
+
 plot_acf(series, lags=30)
 plot_pacf(series, lags=30)
 plt.show()
 
-# %% [markdown]
+
 # We saw that our time series values are not correlated with distant points in time, this is good and shows us our series should be stationary but for the shake of learning and confirming we will test with some other methods
 
-# %% [markdown]
+
 # ### Rolling means and standard deviation of our series
 
-# %% [markdown]
+
 # We were talking about how our mean and standard deviation should be constant over time in order to have a stationary time series, why not just plot this two properties?
 
-# %%
+
 # Determing rolling statistics
 rolmean = air_pollution.pollution_today.rolling(window=12).mean()
 rolstd = air_pollution.pollution_today.rolling(window=12).std()
@@ -341,10 +302,10 @@ plt.legend(loc='best')
 plt.title('Rolling Mean & Standard Deviation')
 plt.show(block=False)
 
-# %% [markdown]
+
 # We can see how our mean and standar deviation have a constant behaviour over the years, even if they change over the year this behaviour is then repeated next year. This proves us again a stationary series
 
-# %% [markdown]
+
 # ### Augmented Dickey-Fuller test
 # The Augmented Dickey-Fuller test is a type of statistical test called a unit root test. The intuition behind a unit root test is that it determines how strongly a time series is defined by a trend. There are a number of unit root tests and the Augmented Dickey-Fuller may be one of the more widely used. It uses an autoregressive model and optimizes an information criterion across multiple different lag values.
 # 
@@ -359,7 +320,7 @@ plt.show(block=False)
 # Below is an example of calculating the Augmented Dickey-Fuller test on the Daily Female Births dataset. The statsmodels library provides the adfuller() function that implements the test.
 # 
 
-# %%
+
 X = air_pollution.pollution_today.values
 result = adfuller(X)
 print('ADF Statistic: %f' % result[0])
@@ -368,10 +329,10 @@ print('Critical Values:')
 for key, value in result[4].items():
     print('\t%s: %.3f' % (key, value))
 
-# %% [markdown]
+
 # Here we also provide a method to quickly perform all the previous methods into one single function call and a pretty graph :)
 
-# %%
+
 def tsplot(y, lags=None, figsize=(12, 7), syle='bmh'):
     if not isinstance(y, pd.Series):
         y = pd.Series(y)
@@ -405,13 +366,13 @@ def tsplot(y, lags=None, figsize=(12, 7), syle='bmh'):
 
 tsplot(air_pollution.pollution_today, lags=30)
 
-# %% [markdown]
+
 # ## Making Time Series Stationary
 
-# %% [markdown]
+
 # Okay we got lucky with this dataset and is already stationary, but what happens when this is not the case? We included a dummy dataset called `international_airline_passengers.csv` on the datasets folders which is not stationary and we will apply some methods in this section to transform it into a stationary series.
 
-# %%
+
 passengers = pd.read_csv("datasets/international_airline_passengers.csv")
 passengers.passengers.plot(label='Original')
 passengers.passengers.rolling(window=12).mean().plot(
@@ -421,13 +382,13 @@ passengers.passengers.rolling(window=12).std().plot(
 plt.legend()
 plt.title('Original vs Windowed mean vs Windowed std')
 
-# %% [markdown]
+
 # Lets run our stationary multitest function over this series
 
-# %%
+
 tsplot(passengers.passengers, lags=30)
 
-# %% [markdown]
+
 # With a p value of ~1 and high correlation values over time distant samples (showing a clear seasonality shape) we need to apply some methods to make the series stationary.
 # 
 # Coming back to the stationary definition, what makes our current series non stationary?
@@ -438,10 +399,10 @@ tsplot(passengers.passengers, lags=30)
 # 
 # We now present some methods to remove or smotth this trend and seasonality components
 
-# %% [markdown]
+
 # ### Difference transform
 
-# %% [markdown]
+
 # Applying a difference transform to a time series could help remove the series dependence on time.
 # 
 # This transform is done by substracting the previous obesvation to the current one.
@@ -452,7 +413,7 @@ tsplot(passengers.passengers, lags=30)
 # 
 # We can also apply differencing transforms consecutively in the same series if the temporal effect hasnt been removed yet. This is called multiple order difference transform
 
-# %%
+
 def difference(dataset, interval=1, order=1):
     for u in range(order):
         diff = list()
@@ -462,7 +423,7 @@ def difference(dataset, interval=1, order=1):
         dataset = diff
     return diff
 
-# %%
+
 lag1series = pd.Series(difference(passengers.passengers, interval=1, order=1))
 lag3series = pd.Series(difference(passengers.passengers, interval=3, order=1))
 lag1order2series = pd.Series(difference(
@@ -503,20 +464,20 @@ lag1order2.plot(lag1order2series.rolling(7).std(),
                 color='black', label='Rolling Std')
 lag1order2.legend(loc='best')
 
-# %% [markdown]
+
 # We can see how 1 order differencing doesnt really remove stationary but once we go with a order 2 difference it looks closer to a stationary series
 
-# %% [markdown]
+
 # ### Log scale transformation
 
-# %% [markdown]
+
 # Applying a log scale transform to a time series could also  help remove the series dependence on time.
 # 
 # This transform is done by substracting the previous obesvation to the current one.
 # 
 # `LogScaleTransform(t)= Log(t)`
 
-# %%
+
 ts_log = np.log(passengers.passengers)
 ts_log.plot(label='Log scale result')
 ts_log.rolling(window=12).mean().plot(color='red', label='Windowed mean')
@@ -524,28 +485,28 @@ ts_log.rolling(window=12).std().plot(color='black', label='Std mean')
 plt.legend()
 plt.title('Log scale transformation into original series')
 
-# %%
+
 # COmment results
 
-# %% [markdown]
+
 # ### Smoothing
 
-# %% [markdown]
+
 # We have seen the moving mean as a measure to check stationarity, we can also apply this windows to our series to remove seasonality.
 # 
 # With smotthing we will take rolling averages over periods of time. Is a bit tricky to choose the best windows #MORE ON THIS IN NEXT SECTION WITH AUTO WINDOWS
 
-# %%
+
 avg = pd.Series(ts_log).rolling(12).mean()
 plt.plot(avg, label='Log scale smoothed with windows 12')
 avg.rolling(window=12).mean().plot(color='red', label='Windowed mean')
 avg.rolling(window=12).std().plot(color='black', label='Std mean')
 plt.legend()
 
-# %% [markdown]
+
 # We can combine it with our previous log scale and apply differencing
 
-# %%
+
 ts_log_moving_avg_diff = ts_log - avg
 
 ts_log_moving_avg_diff.plot(label='Original')
